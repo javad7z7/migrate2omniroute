@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'">
+<title>Migrate to OmniRoute</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #161a22;
+    --panel-2: #1c2230;
+    --border: #2a3346;
+    --text: #e7ebf3;
+    --muted: #8b93a7;
+    --accent: #5b8cff;
+    --accent-hover: #76a1ff;
+    --success: #3dd68c;
+    --warn: #f0b44c;
+    --error: #f0694d;
+    --mono: 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif;
+    font-size: 14px;
+    overflow: hidden;
+  }
+  #root { display: flex; flex-direction: column; height: 100vh; }
+
+  header {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+    -webkit-app-region: drag;
+  }
+  header h1 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+  header .sub {
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  main {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+  }
+  .card h3 {
+    margin: 0 0 12px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--muted);
+  }
+
+  .row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .row + .row { margin-top: 10px; }
+
+  input[type="text"] {
+    flex: 1;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-family: var(--mono);
+    font-size: 12px;
+    outline: none;
+  }
+  input[type="text"]:focus {
+    border-color: var(--accent);
+  }
+
+  button {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  button:hover {
+    background: var(--border);
+    border-color: var(--accent);
+  }
+  button.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+    font-weight: 600;
+    padding: 10px 22px;
+  }
+  button.primary:hover {
+    background: var(--accent-hover);
+  }
+  button.primary:disabled {
+    background: var(--border);
+    border-color: var(--border);
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 500;
+  }
+  .badge.ok { background: rgba(61,214,140,0.15); color: var(--success); }
+  .badge.warn { background: rgba(240,180,76,0.15); color: var(--warn); }
+  .badge.err { background: rgba(240,105,77,0.15); color: var(--error); }
+  .badge .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: currentColor;
+  }
+
+  .modes {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .mode-opt {
+    flex: 1;
+    min-width: 140px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .mode-opt:hover { border-color: var(--accent); }
+  .mode-opt.selected {
+    background: rgba(91,140,255,0.1);
+    border-color: var(--accent);
+  }
+  .mode-opt .name {
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .mode-opt .desc {
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+
+  .log {
+    background: #0a0c10;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.6;
+    max-height: 240px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+  .log .ok { color: var(--success); }
+  .log .err { color: var(--error); }
+  .log .muted { color: var(--muted); }
+
+  .footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    background: var(--panel);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .footer .status {
+    flex: 1;
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  details { font-size: 12px; color: var(--muted); }
+  details summary { cursor: pointer; user-select: none; }
+  details ul { margin: 8px 0 0; padding-left: 20px; }
+  details code {
+    background: var(--panel-2);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-family: var(--mono);
+    font-size: 11px;
+  }
+
+  .spinner {
+    display: inline-block;
+    width: 12px; height: 12px;
+    border: 2px solid rgba(255,255,255,0.2);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    vertical-align: -2px;
+    margin-right: 6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div id="root">
+  <header>
+    <h1>Migrate to OmniRoute</h1>
+    <div class="sub">Transfer providers, combos, API keys &amp; settings from 9router</div>
+  </header>
+
+  <main>
+    <div class="card">
+      <h3>Source · 9router</h3>
+      <div class="row">
+        <input type="text" id="srcPath" placeholder="Path to 9router data.sqlite" readonly>
+        <button id="btnPickSrc">Browse…</button>
+        <span id="srcStatus" class="badge warn"><span class="dot"></span>Not selected</span>
+      </div>
+      <div class="row">
+        <button id="btnAutoSrc" style="font-size:12px">Auto-detect</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Target · OmniRoute</h3>
+      <div class="row">
+        <input type="text" id="dstPath" placeholder="OmniRoute data dir or output folder" readonly>
+        <button id="btnPickDst">Browse…</button>
+        <span id="dstStatus" class="badge warn"><span class="dot"></span>Not selected</span>
+      </div>
+      <div class="row">
+        <button id="btnAutoDst" style="font-size:12px">Auto-detect</button>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <details>
+          <summary>Where does OmniRoute store its data?</summary>
+          <ul>
+            <li><b>Windows:</b> <code>%APPDATA%/omniroute/</code></li>
+            <li><b>macOS:</b> <code>~/.omniroute/</code></li>
+            <li><b>Linux:</b> <code>~/.omniroute/</code></li>
+            <li>Custom: set <code>DATA_DIR</code> env var when launching OmniRoute</li>
+          </ul>
+        </details>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Output mode</h3>
+      <div class="modes">
+        <div class="mode-opt" data-mode="json">
+          <div class="name">db.json</div>
+          <div class="desc">Drop into OmniRoute data dir. Auto-imported on next launch. Safest.</div>
+        </div>
+        <div class="mode-opt" data-mode="sql">
+          <div class="name">SQL file</div>
+          <div class="desc">Generate omniroute_inject.sql. Apply manually with sqlite3.</div>
+        </div>
+        <div class="mode-opt selected" data-mode="inject">
+          <div class="name">Direct inject</div>
+          <div class="desc">Write directly into OmniRoute's data.sqlite. Fastest.</div>
+        </div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);cursor:pointer">
+          <input type="checkbox" id="includeUsage">
+          Include usage history (~20k rows, optional)
+        </label>
+      </div>
+    </div>
+
+    <div class="card" style="flex:1;display:flex;flex-direction:column">
+      <h3>Log</h3>
+      <div class="log" id="log" style="flex:1;min-height:120px">Ready.</div>
+    </div>
+  </main>
+
+  <div class="footer">
+    <div class="status" id="status">Select source and target, then Run.</div>
+    <div style="display:flex;gap:8px">
+      <button id="btnOpenOut" disabled>Open output folder</button>
+      <button id="btnRun" class="primary" disabled>Run migration</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const state = {
+    srcPath: null,
+    dstPath: null,
+    modes: new Set(['inject']),
+    running: false,
+  };
+
+  function log(msg, cls) {
+    const el = $('log');
+    const line = document.createElement('div');
+    if (cls) line.className = cls;
+    line.textContent = msg;
+    el.appendChild(line);
+    el.scrollTop = el.scrollHeight;
+  }
+
+  function setBadge(id, kind, text) {
+    const el = $(id);
+    el.className = 'badge ' + kind;
+    el.innerHTML = '<span class="dot"></span>' + text;
+  }
+
+  function refresh() {
+    $('btnRun').disabled =
+      state.running || !state.srcPath || !state.dstPath || state.modes.size === 0;
+    $('btnOpenOut').disabled = !state.dstPath;
+    $('status').textContent = state.running
+      ? 'Migration in progress…'
+      : (state.srcPath && state.dstPath)
+        ? `Ready — modes: ${[...state.modes].join(', ')}`
+        : 'Select source and target, then Run.';
+  }
+
+  // ── Mode selection ──
+  document.querySelectorAll('.mode-opt').forEach(el => {
+    el.addEventListener('click', () => {
+      const m = el.dataset.mode;
+      if (state.modes.has(m)) {
+        state.modes.delete(m);
+        el.classList.remove('selected');
+      } else {
+        state.modes.add(m);
+        el.classList.add('selected');
+      }
+      refresh();
+    });
+  });
+
+  // ── Source picker ──
+  $('btnPickSrc').addEventListener('click', async () => {
+    const p = await window.api.pickSourceDb();
+    if (p) {
+      state.srcPath = p;
+      $('srcPath').value = p;
+      setBadge('srcStatus', 'ok', 'Selected');
+      refresh();
+    }
+  });
+  $('btnAutoSrc').addEventListener('click', async () => {
+    const r = await window.api.detect9router();
+    if (r.found) {
+      state.srcPath = r.path;
+      $('srcPath').value = r.path;
+      setBadge('srcStatus', 'ok', `Found (${(r.size/1024).toFixed(0)} KB)`);
+      log(`Auto-detected 9router DB: ${r.path}`, 'ok');
+    } else {
+      setBadge('srcStatus', 'err', 'Not found');
+      log('Could not auto-detect 9router install', 'err');
+    }
+    refresh();
+  });
+
+  // ── Target picker ──
+  $('btnPickDst').addEventListener('click', async () => {
+    const p = await window.api.pickTargetDir();
+    if (p) {
+      state.dstPath = p;
+      $('dstPath').value = p;
+      setBadge('dstStatus', 'ok', 'Selected');
+      refresh();
+    }
+  });
+  $('btnAutoDst').addEventListener('click', async () => {
+    const r = await window.api.detectOmniroute();
+    if (r.found) {
+      state.dstPath = r.path;
+      $('dstPath').value = r.path;
+      setBadge('dstStatus', 'ok', 'Found');
+      log(`Auto-detected OmniRoute dir: ${r.path}`, 'ok');
+    } else {
+      setBadge('dstStatus', 'warn', 'Not found — will create');
+      log('OmniRoute not auto-detected. Choose a folder manually, or the app will create one.', 'muted');
+    }
+    refresh();
+  });
+
+  // ── Run ──
+  $('btnRun').addEventListener('click', async () => {
+    state.running = true;
+    refresh();
+    $('status').innerHTML = '<span class="spinner"></span>Running…';
+    $('log').innerHTML = '';
+    log('Starting migration…', 'muted');
+
+    const res = await window.api.runMigration({
+      sourceDb: state.srcPath,
+      targetDir: state.dstPath,
+      modes: [...state.modes],
+      includeUsage: $('includeUsage').checked,
+    });
+
+    state.running = false;
+    if (res.ok) {
+      $('status').textContent = 'Migration complete.';
+      log('Done. You can now launch OmniRoute.', 'ok');
+    } else {
+      $('status').textContent = 'Migration failed: ' + res.error;
+      log('FAILED: ' + res.error, 'err');
+    }
+    refresh();
+  });
+
+  $('btnOpenOut').addEventListener('click', async () => {
+    if (state.dstPath) await window.api.openFolder(state.dstPath);
+  });
+
+  window.api.onLog((msg) => log(msg));
+
+  refresh();
+})();
+</script>
+</body>
+</html>

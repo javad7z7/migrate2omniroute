@@ -1,0 +1,64 @@
+{
+  "name": "migrate-to-omniroute",
+  "version": "1.0.0",
+  "description": "Migrate data from 9router to OmniRoute",
+  "main": "src/main.js",
+  "author": {
+    "name": "Javad",
+    "email": "jvdbabaei009@gmail.com"
+  },
+  "homepage": "https://github.com/javad7z7/migrate-to-omniroute",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "build:win": "electron-builder --win --x64",
+    "build:mac": "electron-builder --mac --x64 --arm64",
+    "build:linux": "electron-builder --linux --x64",
+    "build:all": "electron-builder -mwl",
+    "pack": "electron-builder --dir"
+  },
+  "build": {
+    "appId": "com.omniroute.migrate",
+    "productName": "Migrate to OmniRoute",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "src/**/*",
+      "scripts/**/*",
+      "build/**/*"
+    ],
+    "asar": true,
+    "win": {
+      "target": ["portable", "zip"],
+      "icon": "build/icon.png",
+      "signAndEditExecutable": false,
+      "verifyUpdateCodeSignature": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "mac": {
+      "target": ["zip"],
+      "icon": "build/icon.png",
+      "category": "public.app-category.developer-tools",
+      "identity": null
+    },
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "icon": "build/icon.png",
+      "category": "Development"
+    }
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.10.0"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0"
+  }
+}
