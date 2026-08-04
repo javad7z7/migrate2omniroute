@@ -45,15 +45,31 @@ OmniRoute is a fork of 9router, so schemas are ~95% compatible — this app hand
 
 ## Running on a headless server (no GUI)
 
-If 9router and OmniRoute run on a Linux server with no desktop, use the bundled CLI instead of the Electron app:
+If 9router and OmniRoute run on a Linux server with no desktop, use the one-shot bash script — it checks Node.js, clones the repo, installs deps, auto-detects paths, and runs the migration:
 
 ```bash
-# Clone or download the repo
+curl -fsSL https://raw.githubusercontent.com/javad7z7/migrate2omniroute/main/scripts/migrate2omniroute.sh | bash
+```
+
+Then restart OmniRoute — it picks up `db.json` on launch.
+
+**Custom paths / modes:**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/javad7z7/migrate2omniroute/main/scripts/migrate2omniroute.sh -o m2o.sh
+chmod +x m2o.sh
+
+./m2o.sh --source /opt/9router/data/db/data.sqlite --target ~/.omniroute --mode json
+./m2o.sh -s /custom/path/data.sqlite -m all      # json + sql + inject
+```
+
+**Manual alternative** (if you prefer step-by-step):
+
+```bash
 git clone https://github.com/javad7z7/migrate2omniroute.git
 cd migrate2omniroute
 npm install
 
-# Run migration — safest mode: produces db.json for OmniRoute to auto-import
 node scripts/migrate-cli.js \
   --source /opt/9router/data/db/data.sqlite \
   --target ~/.omniroute \
