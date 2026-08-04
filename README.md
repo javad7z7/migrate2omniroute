@@ -43,6 +43,41 @@ OmniRoute is a fork of 9router, so schemas are ~95% compatible — this app hand
 - `mitm/aliases.json` — copy manually if you use MITM mode
 - Logs
 
+## Running on a headless server (no GUI)
+
+If 9router and OmniRoute run on a Linux server with no desktop, use the bundled CLI instead of the Electron app:
+
+```bash
+# Clone or download the repo
+git clone https://github.com/javad7z7/migrate2omniroute.git
+cd migrate2omniroute
+npm install
+
+# Run migration — safest mode: produces db.json for OmniRoute to auto-import
+node scripts/migrate-cli.js \
+  --source /opt/9router/data/db/data.sqlite \
+  --target ~/.omniroute \
+  --mode json
+```
+
+Then restart OmniRoute — it picks up `db.json` on launch.
+
+**Other modes:**
+
+```bash
+# Generate SQL file (apply manually with sqlite3)
+node scripts/migrate-cli.js -s /opt/9router/data/db/data.sqlite -m sql
+sqlite3 ~/.omniroute/db/data.sqlite < omniroute_inject.sql
+
+# Direct inject (requires OmniRoute to have run at least once)
+node scripts/migrate-cli.js -s /opt/9router/data/db/data.sqlite -m inject
+
+# All three at once
+node scripts/migrate-cli.js -s /opt/9router/data/db/data.sqlite -m all
+```
+
+**Alternative without installing anything:** copy `data.sqlite` from the server to your PC (`scp user@server:/opt/9router/data/db/data.sqlite .`), run the desktop app locally in `db.json` mode, then `scp` the resulting `db.json` back to the server's OmniRoute data dir.
+
 ## Building from source
 
 ```bash
