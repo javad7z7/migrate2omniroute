@@ -31,16 +31,24 @@
     ],
     "asar": true,
     "win": {
-      "target": ["portable", "zip"],
+      "target": ["nsis", "portable", "zip"],
       "icon": "build/icon.png",
-      "signAndEditExecutable": false,
-      "verifyUpdateCodeSignature": false
+      "signAndEditExecutable": true,
+      "verifyUpdateCodeSignature": false,
+      "requestedExecutionLevel": "asInvoker",
+      "publisherName": "javad7z7",
+      "legalTrademarks": "Migrate to OmniRoute",
+      "fileDescription": "Migrate data from 9router to OmniRoute",
+      "productName": "Migrate to OmniRoute",
+      "extraResources": []
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
+      "createStartMenuShortcut": true,
+      "shortcutName": "Migrate to OmniRoute",
+      "artifactName": "${productName}-Setup-${version}.${ext}"
     },
     "mac": {
       "target": ["zip"],

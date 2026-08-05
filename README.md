@@ -8,12 +8,17 @@ OmniRoute is a fork of 9router, so schemas are ~95% compatible — this app hand
 
 | File | Platform | Notes |
 |---|---|---|
-| `Migrate to OmniRoute 1.0.0.exe` | Windows x64 | Portable, no installer, double-click to run |
-| `Migrate to OmniRoute-1.0.0-win.zip` | Windows x64 | Same as above, zipped |
-| `Migrate to OmniRoute-1.0.0-mac.zip` | macOS x64 (Intel) | Unzip → `.app`. Run `xattr -cr "Migrate to OmniRoute.app"` once to bypass Gatekeeper (unsigned) |
-| `Migrate to OmniRoute-1.0.0-arm64-mac.zip` | macOS arm64 (M1/M2/M3) | Same as above |
-| `Migrate to OmniRoute-1.0.0.AppImage` | Linux x64 | `chmod +x` then run |
-| `migrate-to-omniroute_1.0.0_amd64.deb` | Linux x64 | `sudo dpkg -i` |
+| `Migrate to OmniRoute-Setup-*.exe` | Windows x64 | **NSIS installer** — recommended |
+| `Migrate to OmniRoute *.exe` | Windows x64 | Portable, no install needed |
+| `Migrate to OmniRoute-*-win.zip` | Windows x64 | Zipped portable |
+| `Migrate to OmniRoute-*-mac.zip` | macOS x64 (Intel) | Unzip → `.app`. Run `xattr -cr "Migrate to OmniRoute.app"` once to bypass Gatekeeper (unsigned) |
+| `Migrate to OmniRoute-*-arm64-mac.zip` | macOS arm64 (M1/M2/M3) | Same as above |
+| `Migrate to OmniRoute-*.AppImage` | Linux x64 | `chmod +x` then run |
+| `migrate-to-omniroute_*_amd64.deb` | Linux x64 | `sudo dpkg -i` |
+
+> **Windows SmartScreen warning**: The app is not code-signed (certificates cost $200+/year), so Windows shows "Windows protected your PC". This is normal for open-source apps. Click **More info → Run anyway**. The source code is fully auditable in this repo.
+
+> **macOS Gatekeeper**: Same story — right-click → Open, or run `xattr -cr` on the `.app`.
 
 ## How to use
 

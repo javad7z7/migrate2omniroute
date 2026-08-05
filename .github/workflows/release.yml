@@ -106,6 +106,7 @@ jobs:
             release/*.deb
             release/*.exe
             release/*.zip
+            release/*.msi
           if-no-files-found: error
 
   release:
@@ -131,7 +132,7 @@ jobs:
       - name: Prepare release files
         run: |
           mkdir -p dist
-          find artifacts -type f \( -name "*.AppImage" -o -name "*.deb" -o -name "*.exe" -o -name "*.zip" \) -exec cp {} dist/ \;
+          find artifacts -type f \( -name "*.AppImage" -o -name "*.deb" -o -name "*.exe" -o -name "*.zip" -o -name "*.msi" \) -exec cp {} dist/ \;
           ls -la dist/
 
       - name: Create GitHub Release
