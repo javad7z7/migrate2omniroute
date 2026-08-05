@@ -241,12 +241,17 @@
     <div class="card">
       <h3>Source · 9router</h3>
       <div class="row">
-        <input type="text" id="srcPath" placeholder="Path to 9router data.sqlite" readonly>
+        <select id="sourceType" style="background:var(--panel-2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:8px">
+          <option value="json">JSON backup (recommended)</option>
+          <option value="sqlite">SQLite database (local)</option>
+        </select>
+        <input type="text" id="srcPath" placeholder="Select 9router backup JSON" readonly>
         <button id="btnPickSrc">Browse…</button>
         <span id="srcStatus" class="badge warn"><span class="dot"></span>Not selected</span>
       </div>
       <div class="row">
-        <button id="btnAutoSrc" style="font-size:12px">Auto-detect</button>
+        <button id="btnAutoSrc" style="font-size:12px">Auto-detect local SQLite</button>
+        <span style="font-size:11px;color:var(--muted)">JSON works with Docker, VPS and remote 9router.</span>
       </div>
     </div>
 
@@ -276,7 +281,7 @@
     <div class="card">
       <h3>Output mode</h3>
       <div class="modes">
-        <div class="mode-opt" data-mode="json">
+        <div class="mode-opt selected" data-mode="json">
           <div class="name">db.json</div>
           <div class="desc">Drop into OmniRoute data dir. Auto-imported on next launch. Safest.</div>
         </div>
@@ -284,9 +289,9 @@
           <div class="name">SQL file</div>
           <div class="desc">Generate omniroute_inject.sql. Apply manually with sqlite3.</div>
         </div>
-        <div class="mode-opt selected" data-mode="inject">
+        <div class="mode-opt" data-mode="inject">
           <div class="name">Direct inject</div>
-          <div class="desc">Write directly into OmniRoute's data.sqlite. Fastest.</div>
+          <div class="desc">Write directly into local OmniRoute's data.sqlite. Requires local DB.</div>
         </div>
       </div>
       <div class="row" style="margin-top:10px">
@@ -316,9 +321,10 @@
 (() => {
   const $ = (id) => document.getElementById(id);
   const state = {
+    sourceType: 'json',
     srcPath: null,
     dstPath: null,
-    modes: new Set(['inject']),
+    modes: new Set(['json']),
     running: false,
   };
 
@@ -364,8 +370,19 @@
   });
 
   // ── Source picker ──
+  $('sourceType').addEventListener('change', () => {
+    state.sourceType = $('sourceType').value;
+    state.srcPath = null;
+    $('srcPath').value = '';
+    $('srcPath').placeholder = state.sourceType === 'json'
+      ? 'Select 9router backup JSON' : 'Path to 9router data.sqlite';
+    setBadge('srcStatus', 'warn', 'Not selected');
+    refresh();
+  });
   $('btnPickSrc').addEventListener('click', async () => {
-    const p = await window.api.pickSourceDb();
+    const p = state.sourceType === 'json'
+      ? await window.api.pickSourceJson()
+      : await window.api.pickSourceDb();
     if (p) {
       state.srcPath = p;
       $('srcPath').value = p;
@@ -376,6 +393,9 @@
   $('btnAutoSrc').addEventListener('click', async () => {
     const r = await window.api.detect9router();
     if (r.found) {
+      state.sourceType = 'sqlite';
+      $('sourceType').value = 'sqlite';
+      $('srcPath').placeholder = 'Path to 9router data.sqlite';
       state.srcPath = r.path;
       $('srcPath').value = r.path;
       setBadge('srcStatus', 'ok', `Found (${(r.size/1024).toFixed(0)} KB)`);
@@ -420,7 +440,7 @@
     log('Starting migration…', 'muted');
 
     const res = await window.api.runMigration({
-      sourceDb: state.srcPath,
+      ...(state.sourceType === 'json' ? { sourceJson: state.srcPath } : { sourceDb: state.srcPath }),
       targetDir: state.dstPath,
       modes: [...state.modes],
       includeUsage: $('includeUsage').checked,

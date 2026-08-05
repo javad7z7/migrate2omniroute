@@ -106,6 +106,7 @@ jobs:
             release/*.deb
             release/*.exe
             release/*.zip
+            release/*.dmg
             release/*.msi
           if-no-files-found: error
 
@@ -148,7 +149,7 @@ jobs:
             | Platform | Files |
             |---|---|
             | Windows | `.exe` portable, `.zip` |
-            | macOS | `-mac.zip` (Intel), `-arm64-mac.zip` (Apple Silicon) |
+            | macOS | `-mac.dmg` + `-mac.zip` (Intel), `-arm64-mac.dmg` + `-arm64-mac.zip` (Apple Silicon) |
             | Linux | `.AppImage`, `.deb` |
 
             Built automatically from commit ${{ github.sha }}

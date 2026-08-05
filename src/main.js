@@ -40,6 +40,16 @@ app.on('window-all-closed', () => {
 
 // ─── IPC handlers ────────────────────────────────────────────
 
+ipcMain.handle('pick-source-json', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: 'Select 9router JSON backup',
+    filters: [{ name: 'JSON backup', extensions: ['json'] }],
+    properties: ['openFile'],
+  });
+  if (result.canceled) return null;
+  return result.filePaths[0];
+});
+
 ipcMain.handle('pick-source-db', async () => {
   const result = await dialog.showOpenDialog(mainWindow, {
     title: 'Select 9router data.sqlite',
@@ -68,7 +78,7 @@ ipcMain.handle('run-migration', async (event, opts) => {
     }
   };
   try {
-    log(`▶ Starting migration from: ${opts.sourceDb}`);
+    log(`▶ Starting migration from: ${opts.sourceJson || opts.sourceDb}`);
     const result = await runMigration(opts, log);
     log('✓ Migration complete.');
     return { ok: true, result };

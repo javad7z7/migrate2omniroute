@@ -11,28 +11,36 @@ const Database = require('better-sqlite3');
  *   - "inject"→ directly open target OmniRoute DB and insert rows
  *
  * @param {object} opts
- * @param {string} opts.sourceDb   - path to 9router data.sqlite
- * @param {string} opts.targetDir  - OmniRoute data dir (or output folder for json/sql modes)
+ * @param {string} [opts.sourceDb]   - path to 9router data.sqlite (legacy/local mode)
+ * @param {string} [opts.sourceJson] - path to 9router JSON backup (portable/remote mode)
+ * @param {string} opts.targetDir     - OmniRoute data dir or output folder
  * @param {string[]} opts.modes    - subset of ["json","sql","inject"]
  * @param {boolean} opts.includeUsage - include usage history (default false)
  * @param {function(string):void} log
  */
 async function runMigration(opts, log) {
-  const { sourceDb, targetDir, modes, includeUsage = false } = opts;
-  if (!sourceDb || !fs.existsSync(sourceDb)) {
-    throw new Error(`Source DB not found: ${sourceDb}`);
-  }
+  const { sourceDb, sourceJson, targetDir, modes, includeUsage = false } = opts;
+  if (!sourceDb && !sourceJson) throw new Error('Source JSON backup or SQLite database required');
+  if (sourceDb && sourceJson) throw new Error('Choose one source: JSON backup or SQLite database');
+  if (sourceDb && !fs.existsSync(sourceDb)) throw new Error(`Source DB not found: ${sourceDb}`);
+  if (sourceJson && !fs.existsSync(sourceJson)) throw new Error(`Source JSON not found: ${sourceJson}`);
   if (!targetDir) throw new Error('Target directory required');
-  if (!Array.isArray(modes) || modes.length === 0) {
-    throw new Error('At least one output mode required');
-  }
+  if (!Array.isArray(modes) || modes.length === 0) throw new Error('At least one output mode required');
   fs.mkdirSync(targetDir, { recursive: true });
 
-  log(`Reading ${sourceDb}...`);
-  const db = new Database(sourceDb, { readonly: true, fileMustExist: true });
-
-  const data = readAll(db, includeUsage, log);
-  db.close();
+  let data;
+  if (sourceJson) {
+    log(`Reading 9router JSON backup: ${sourceJson}...`);
+    let parsed;
+    try { parsed = JSON.parse(fs.readFileSync(sourceJson, 'utf8')); }
+    catch (err) { throw new Error(`Invalid JSON backup: ${err.message}`); }
+    data = normalizeJsonBackup(parsed, log);
+  } else {
+    log(`Reading 9router SQLite database: ${sourceDb}...`);
+    const db = new Database(sourceDb, { readonly: true, fileMustExist: true });
+    data = readAll(db, includeUsage, log);
+    db.close();
+  }
 
   logStats(data, log);
 
@@ -66,6 +74,40 @@ async function runMigration(opts, log) {
   }
 
   return outputs;
+}
+
+// ─── Normalize exported 9router JSON ───────────────────────
+
+function normalizeJsonBackup(input, log) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    throw new Error('JSON backup must contain an object at root');
+  }
+  const data = {
+    providerConnections: Array.isArray(input.providerConnections) ? input.providerConnections : [],
+    providerNodes: Array.isArray(input.providerNodes) ? input.providerNodes : [],
+    apiKeys: Array.isArray(input.apiKeys) ? input.apiKeys : [],
+    combos: Array.isArray(input.combos) ? input.combos : [],
+    settings: input.settings && typeof input.settings === 'object' ? input.settings : {},
+    modelAliases: input.modelAliases && typeof input.modelAliases === 'object' ? input.modelAliases : {},
+    mitmAlias: input.mitmAlias && typeof input.mitmAlias === 'object' ? input.mitmAlias : {},
+    pricing: input.pricing && typeof input.pricing === 'object' ? input.pricing : {},
+    customModels: input.customModels && typeof input.customModels === 'object' ? input.customModels : {},
+  };
+  if (Array.isArray(input.customModels)) {
+    for (const model of input.customModels) {
+      const key = model.providerAlias || model.provider || 'custom';
+      if (!data.customModels[key]) data.customModels[key] = [];
+      data.customModels[key].push(model);
+    }
+  }
+  if (Array.isArray(input.usageHistory)) data.usageHistory = input.usageHistory;
+  log(`  JSON backup parsed: ${JSON.stringify({
+    connections: data.providerConnections.length,
+    nodes: data.providerNodes.length,
+    apiKeys: data.apiKeys.length,
+    combos: data.combos.length,
+  })}`);
+  return { json: data, raw: { apiKeys: data.apiKeys, providerConnections: data.providerConnections, providerNodes: data.providerNodes, combos: data.combos, settings: data.settings, kvBuckets: { customModels: data.customModels, modelAliases: data.modelAliases, mitmAlias: data.mitmAlias, pricing: data.pricing }, usageHistory: data.usageHistory || null } };
 }
 
 // ─── Read everything from 9router ───────────────────────────

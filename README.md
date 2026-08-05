@@ -11,8 +11,10 @@ OmniRoute is a fork of 9router, so schemas are ~95% compatible — this app hand
 | `Migrate to OmniRoute-Setup-*.exe` | Windows x64 | **NSIS installer** — recommended |
 | `Migrate to OmniRoute *.exe` | Windows x64 | Portable, no install needed |
 | `Migrate to OmniRoute-*-win.zip` | Windows x64 | Zipped portable |
-| `Migrate to OmniRoute-*-mac.zip` | macOS x64 (Intel) | Unzip → `.app`. Run `xattr -cr "Migrate to OmniRoute.app"` once to bypass Gatekeeper (unsigned) |
-| `Migrate to OmniRoute-*-arm64-mac.zip` | macOS arm64 (M1/M2/M3) | Same as above |
+| `Migrate to OmniRoute-*-mac.dmg` | macOS x64 (Intel) | Open DMG → drag app to **Applications**. Unsigned builds may need right-click → Open |
+| `Migrate to OmniRoute-*-arm64-mac.dmg` | macOS arm64 (M1/M2/M3) | Same drag-to-Applications flow |
+| `Migrate to OmniRoute-*-mac.zip` | macOS x64 (Intel) | Fallback archive. Unzip → `.app`; `xattr -cr "Migrate to OmniRoute.app"` if Gatekeeper blocks it |
+| `Migrate to OmniRoute-*-arm64-mac.zip` | macOS arm64 (M1/M2/M3) | Same fallback archive |
 | `Migrate to OmniRoute-*.AppImage` | Linux x64 | `chmod +x` then run |
 | `migrate-to-omniroute_*_amd64.deb` | Linux x64 | `sudo dpkg -i` |
 
@@ -22,8 +24,8 @@ OmniRoute is a fork of 9router, so schemas are ~95% compatible — this app hand
 
 ## How to use
 
-1. **Source** — point to your 9router `data.sqlite` (default: `~/.9router/db/data.sqlite`). Auto-detect works on standard installs.
-2. **Target** — pick your OmniRoute data dir (default: `~/.omniroute/`).
+1. **Source** — upload 9router dashboard JSON backup (recommended; works with Docker, VPS and remote installs), or choose local `data.sqlite` for legacy/local migration.
+2. **Target** — pick an output folder or local OmniRoute data dir (default: `~/.omniroute/`).
 3. **Output mode**:
    - **db.json** — drops a `db.json` file into the target dir. Launch OmniRoute once and it auto-imports. **Safest.**
    - **SQL file** — writes `omniroute_inject.sql`. Apply manually with `sqlite3 ~/.omniroute/db/data.sqlite < omniroute_inject.sql`.
@@ -53,7 +55,9 @@ OmniRoute is a fork of 9router, so schemas are ~95% compatible — this app hand
 If 9router and OmniRoute run on a Linux server with no desktop, use the one-shot bash script — it checks Node.js, clones the repo, installs deps, auto-detects paths, and runs the migration:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/javad7z7/migrate2omniroute/main/scripts/migrate2omniroute.sh | bash
+node migrate-cli.js --json ./9router-backup.json --target ./omniroute-output --mode json
+# Local legacy mode:
+node migrate-cli.js --source /opt/9router/data/db/data.sqlite --target ~/.omniroute --mode inject
 ```
 
 Then restart OmniRoute — it picks up `db.json` on launch.

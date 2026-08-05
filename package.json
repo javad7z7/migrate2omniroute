@@ -32,7 +32,7 @@
     "asar": true,
     "win": {
       "target": ["nsis", "portable", "zip"],
-      "icon": "build/icon.png",
+      "icon": "build/icon.ico",
       "signAndEditExecutable": true,
       "verifyUpdateCodeSignature": false,
       "requestedExecutionLevel": "asInvoker",
@@ -48,10 +48,20 @@
       "artifactName": "${productName}-Setup-${version}.${ext}"
     },
     "mac": {
-      "target": ["zip"],
+      "target": ["dmg", "zip"],
       "icon": "build/icon.png",
       "category": "public.app-category.developer-tools",
       "identity": null
+    },
+    "dmg": {
+      "title": "Migrate to OmniRoute",
+      "icon": "build/icon.png",
+      "iconSize": 96,
+      "window": { "width": 660, "height": 420 },
+      "contents": [
+        { "x": 180, "y": 220, "type": "file" },
+        { "x": 480, "y": 220, "type": "link", "path": "/Applications" }
+      ]
     },
     "linux": {
       "target": ["AppImage", "deb"],

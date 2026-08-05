@@ -1,6 +1,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('api', {
+  pickSourceJson: () => ipcRenderer.invoke('pick-source-json'),
   pickSourceDb: () => ipcRenderer.invoke('pick-source-db'),
   pickTargetDir: () => ipcRenderer.invoke('pick-target-dir'),
   runMigration: (opts) => ipcRenderer.invoke('run-migration', opts),

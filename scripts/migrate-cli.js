@@ -3,9 +3,13 @@
  * migrate-cli.js — Headless 9router → OmniRoute migration for servers.
  *
  * Usage:
+ *   node migrate-cli.js --json ./9router-backup.json \
+ *                       --target ./omniroute-output \
+ *                       --mode json
+ *
  *   node migrate-cli.js --source /opt/9router/data/db/data.sqlite \
  *                       --target ~/.omniroute \
- *                       --mode json
+ *                       --mode inject
  *
  * Modes: json (default, safest) | sql | inject | all
  *
@@ -21,7 +25,8 @@ function parseArgs(argv) {
   const args = { mode: 'json', includeUsage: false };
   for (let i = 2; i < argv.length; i++) {
     const a = argv[i];
-    if (a === '--source' || a === '-s') args.source = argv[++i];
+    if (a === '--json' || a === '-j') args.json = argv[++i];
+    else if (a === '--source' || a === '-s') args.source = argv[++i];
     else if (a === '--target' || a === '-t') args.target = argv[++i];
     else if (a === '--mode' || a === '-m') args.mode = argv[++i];
     else if (a === '--include-usage') args.includeUsage = true;
@@ -32,7 +37,7 @@ function parseArgs(argv) {
 
 const args = parseArgs(process.argv);
 
-if (args.help || !args.source) {
+if (args.help || (!args.source && !args.json)) {
   console.log(`
 9router → OmniRoute migration CLI
 
@@ -40,9 +45,10 @@ Usage:
   node migrate-cli.js --source <path-to-data.sqlite> [options]
 
 Options:
-  -s, --source <path>    9router data.sqlite (required)
+  -j, --json <path>      9router dashboard JSON backup (recommended)
+  -s, --source <path>    9router data.sqlite (local/legacy mode)
   -t, --target <dir>     OmniRoute data dir or output folder
-                         (default: ~/.omniroute)
+                         (default: ./omniroute-output)
   -m, --mode <mode>      json | sql | inject | all  (default: json)
       --include-usage    Also migrate usage history (~20k rows)
   -h, --help             Show this help
@@ -79,13 +85,15 @@ try {
 }
 
 // ── Resolve paths ─────────────────────────────────────────────
-const sourceDb = path.resolve(args.source.replace(/^~/, os.homedir()));
+const sourceDb = args.source ? path.resolve(args.source.replace(/^~/, os.homedir())) : null;
+const sourceJson = args.json ? path.resolve(args.json.replace(/^~/, os.homedir())) : null;
 const targetDir = path.resolve(
-  (args.target || '~/.omniroute').replace(/^~/, os.homedir())
+  (args.target || './omniroute-output').replace(/^~/, os.homedir())
 );
 
-if (!fs.existsSync(sourceDb)) {
-  console.error(`✗ Source not found: ${sourceDb}`);
+const sourcePath = sourceJson || sourceDb;
+if (!fs.existsSync(sourcePath)) {
+  console.error(`✗ Source not found: ${sourcePath}`);
   process.exit(1);
 }
 
@@ -102,13 +110,14 @@ for (const m of modes) {
 }
 
 console.log('9router → OmniRoute migration');
-console.log(`  source:  ${sourceDb}`);
+console.log(`  source:  ${sourcePath}`);
+console.log(`  format:  ${sourceJson ? 'JSON backup' : 'SQLite database'}`);
 console.log(`  target:  ${targetDir}`);
 console.log(`  modes:   ${modes.join(', ')}`);
 console.log('');
 
 runMigration(
-  { sourceDb, targetDir, modes, includeUsage: args.includeUsage },
+  { sourceDb, sourceJson, targetDir, modes, includeUsage: args.includeUsage },
   (msg) => console.log(msg)
 )
   .then(() => {
