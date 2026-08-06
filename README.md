@@ -1,8 +1,27 @@
 # Migrate to OmniRoute
 
-Desktop app that migrates your **9router** data (providers, OAuth tokens, API keys, combos, custom models, settings) into **OmniRoute** format.
+JSON-first migration toolkit for moving **9router** providers, OAuth tokens, API keys, combos, custom models, aliases, and settings into **OmniRoute** format.
 
-OmniRoute is a fork of 9router, so schemas are ~95% compatible — this app handles the remaining 5% (JSON column flattening, key_value bucketizing, api_keys schema diff).
+Works with 9router dashboard JSON backups from Docker, VPS, NAS, and remote installs. Local SQLite migration remains available for desktop and server operators who need direct access.
+
+**Website:** [javad7z7.github.io/migrate2omniroute](https://javad7z7.github.io/migrate2omniroute/)
+
+**Web Migrator:** [Open in browser](https://javad7z7.github.io/migrate2omniroute/migrate.html) — local-only JSON conversion; no backup upload.
+
+**Desktop app:** Windows, macOS, and Linux builds with JSON, SQLite, SQL, and direct-inject modes.
+
+The project normalizes the differences between 9router and OmniRoute schemas, including JSON columns, key-value namespaces, API keys, combos, and custom models.
+
+## Choose your path
+
+| Situation | Use |
+|---|---|
+| 9router runs in Docker, VPS, NAS, or remote server | [Web Migrator](https://javad7z7.github.io/migrate2omniroute/migrate.html) with dashboard JSON backup |
+| You want a guided local app | Desktop release from [GitHub Releases](https://github.com/javad7z7/migrate2omniroute/releases/latest) |
+| Headless server or CI | `scripts/migrate-cli.js` |
+| Direct local database injection | Desktop/CLI `inject` mode |
+
+The web tool processes JSON in your browser. It cannot access server files or perform direct database injection; use Desktop or CLI for those modes.
 
 ## Outputs
 
