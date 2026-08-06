@@ -90,9 +90,16 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build (macOS)
+      - name: Build (macOS Intel)
         if: matrix.os == 'macos-latest'
-        run: npx electron-builder --mac --x64 --arm64
+        run: npx electron-builder --mac --x64 --config.directories.output=release/mac-x64
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build (macOS Apple Silicon)
+        if: matrix.os == 'macos-latest'
+        run: npx electron-builder --mac --arm64 --config.directories.output=release/mac-arm64
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -102,12 +109,12 @@ jobs:
         with:
           name: release-${{ matrix.os }}
           path: |
-            release/*.AppImage
-            release/*.deb
-            release/*.exe
-            release/*.zip
-            release/*.dmg
-            release/*.msi
+            release/**/*.AppImage
+            release/**/*.deb
+            release/**/*.exe
+            release/**/*.zip
+            release/**/*.dmg
+            release/**/*.msi
           if-no-files-found: error
 
   release:
