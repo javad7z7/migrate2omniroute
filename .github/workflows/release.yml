@@ -140,7 +140,8 @@ jobs:
       - name: Prepare release files
         run: |
           mkdir -p dist
-          find artifacts -type f \( -name "*.AppImage" -o -name "*.deb" -o -name "*.exe" -o -name "*.zip" -o -name "*.msi" \) -exec cp {} dist/ \;
+          find artifacts -type f \( -name "*.AppImage" -o -name "*.deb" -o -name "*.zip" -o -name "*.msi" \) -exec cp {} dist/ \;
+          find artifacts -type f -name "*.exe" ! -name "elevate.exe" -exec cp {} dist/ \;
           ls -la dist/
 
       - name: Create GitHub Release
