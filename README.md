@@ -18,8 +18,9 @@ The project normalizes the differences between 9router and OmniRoute schemas, in
 |---|---|
 | 9router runs in Docker, VPS, NAS, or remote server | [Web Migrator](https://javad7z7.github.io/migrate2omniroute/migrate.html) with dashboard JSON backup |
 | You want a guided local app | Desktop release from [GitHub Releases](https://github.com/javad7z7/migrate2omniroute/releases/latest) |
-| Headless server or CI | `scripts/migrate-cli.js` |
-| Direct local database injection | Desktop/CLI `inject` mode |
+| Linux VPS / headless server | Interactive `scripts/migrate2omniroute.sh` |
+| CI or custom automation | `scripts/migrate-cli.js` |
+| Direct local database injection | Desktop/CLI `inject` mode with an explicit target database |
 
 The web tool processes JSON in your browser. It cannot access server files or perform direct database injection; use Desktop or CLI for those modes.
 
@@ -44,11 +45,11 @@ The web tool processes JSON in your browser. It cannot access server files or pe
 ## How to use
 
 1. **Source** — upload 9router dashboard JSON backup (recommended; works with Docker, VPS and remote installs), or choose local `data.sqlite` for legacy/local migration.
-2. **Target** — pick an output folder or local OmniRoute data dir (default: `~/.omniroute/`).
+2. **Target** — pick an output folder, or select OmniRoute’s local data directory/database.
 3. **Output mode**:
    - **db.json** — drops a `db.json` file into the target dir. Launch OmniRoute once and it auto-imports. **Safest.**
-   - **SQL file** — writes `omniroute_inject.sql`. Apply manually with `sqlite3 ~/.omniroute/db/data.sqlite < omniroute_inject.sql`.
-   - **Direct inject** — writes directly into OmniRoute's `data.sqlite`. Requires OmniRoute to have run at least once (so its schema exists).
+   - **SQL file** — writes `omniroute_inject.sql`. Apply it only after verifying the target schema/version.
+   - **Direct inject** — writes directly into OmniRoute’s `storage.sqlite`. Requires OmniRoute to have run at least once (so its schema exists).
 4. Click **Run migration**.
 
 ## What gets migrated
@@ -69,29 +70,93 @@ The web tool processes JSON in your browser. It cannot access server files or pe
 - `mitm/aliases.json` — copy manually if you use MITM mode
 - Logs
 
-## Running on a headless server (no GUI)
+## Interactive server migration (recommended for Linux/VPS)
 
-If 9router and OmniRoute run on a Linux server with no desktop, use the one-shot bash script — it checks Node.js, clones the repo, installs deps, auto-detects paths, and runs the migration:
+The Bash installer is the simplest route for a server. It starts with a menu:
 
-```bash
-node migrate-cli.js --json ./9router-backup.json --target ./omniroute-output --mode json
-# Local legacy mode:
-node migrate-cli.js --source /opt/9router/data/db/data.sqlite --target ~/.omniroute --mode inject
+1. **OmniRoute already exists** — backs up 9router, backs up OmniRoute, then migrates into the selected OmniRoute database.
+2. **OmniRoute is not installed** — checks for Docker + Docker Compose, offers to install missing dependencies, launches a separate OmniRoute container, then migrates into it.
+3. **Exit** — makes no changes.
+
+It always creates timestamped, private backups and a log at:
+
+```text
+~/.migrate2omniroute/runs/<UTC-timestamp>/
 ```
 
-Then restart OmniRoute — it picks up `db.json` on launch.
-
-**Custom paths / modes:**
+That folder contains the 9router backup, pre-migration OmniRoute backup, migration output, and `migration.log`. Tokens and API keys never leave the server.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/javad7z7/migrate2omniroute/main/scripts/migrate2omniroute.sh -o m2o.sh
-chmod +x m2o.sh
-
-./m2o.sh --source /opt/9router/data/db/data.sqlite --target ~/.omniroute --mode json
-./m2o.sh -s /custom/path/data.sqlite -m all      # json + sql + inject
+curl -fsSLO https://raw.githubusercontent.com/javad7z7/migrate2omniroute/main/scripts/migrate2omniroute.sh
+bash migrate2omniroute.sh
 ```
 
-**Manual alternative** (if you prefer step-by-step):
+### What it installs and why
+
+The script asks before installing anything. It installs only what the chosen path needs:
+
+- **Node.js 18+ and npm** — runs the existing migration engine.
+- **sqlite3** — creates integrity-checked SQLite backups.
+- **Docker Engine + Docker Compose plugin** — only for the “install OmniRoute” branch.
+
+It never asks for or handles your sudo password. If the OS requires admin permissions, it displays/runs the normal package-manager command only after you approve it. On an unsupported distro or host without usable Docker access, it stops with an actionable message.
+
+### New isolated OmniRoute install
+
+For a new installation, the script uses the official `diegosouzapw/omniroute:latest` image and creates:
+
+```text
+~/.omniroute-m2o/
+├── compose.yml
+└── data/                  # mounted at /app/data in the container
+```
+
+OmniRoute normally uses dashboard port `20128`. The script checks listening host and Docker ports, proposes `20128`, and picks the next available port (`20129`–`20150`) if needed. You can accept it or choose another port. It never intentionally reuses an occupied 9router port.
+
+Before `docker compose up -d`, it prints the image, data directory, port, and URL and asks for confirmation. The dashboard is then available at `http://SERVER_IP:PORT`.
+
+### Existing OmniRoute install
+
+If you already run OmniRoute, select option 1 or give its database explicitly. The script does **not** install a second container or change the existing service’s port/config. It verifies the expected schema and backs up the target before injection.
+
+```bash
+# Existing 9router SQLite + existing OmniRoute target
+bash migrate2omniroute.sh \
+  --source /opt/9router/data/db/data.sqlite \
+  --target-db /path/to/omniroute/storage.sqlite
+
+# 9router dashboard backup + new isolated OmniRoute on a chosen port
+bash migrate2omniroute.sh \
+  --json ./9router-backup.json \
+  --install-omniroute \
+  --port 20130
+```
+
+### Dockerized 9router
+
+For a Docker source, pass `CONTAINER:/absolute/path/in/container`. To get a consistent raw SQLite copy, the script explains and asks permission to stop the 9router container briefly, copies the database, runs `PRAGMA integrity_check`, then restores its original running state. If downtime is not acceptable, export a dashboard JSON backup and pass it with `--json`.
+
+```bash
+bash migrate2omniroute.sh \
+  --source 9router:/app/data/data.sqlite \
+  --target-db /path/to/omniroute/storage.sqlite
+```
+
+### Automation flags
+
+```text
+--source PATH             9router SQLite file or container:/path
+--json PATH               9router dashboard JSON backup
+--target-db PATH          existing OmniRoute storage.sqlite
+--install-omniroute       provision a separate Dockerized OmniRoute
+--port PORT               requested dashboard port for a new install
+--yes                     accept ordinary confirmations
+--non-interactive         fail rather than ask for required choices
+```
+
+`--yes` does not ignore a port conflict. Review `--help` before unattended use.
+
+## Manual CLI alternative
 
 ```bash
 git clone https://github.com/javad7z7/migrate2omniroute.git
@@ -100,7 +165,7 @@ npm install
 
 node scripts/migrate-cli.js \
   --source /opt/9router/data/db/data.sqlite \
-  --target ~/.omniroute \
+  --target ./omniroute-output \
   --mode json
 ```
 
@@ -109,12 +174,14 @@ Then restart OmniRoute — it picks up `db.json` on launch.
 **Other modes:**
 
 ```bash
-# Generate SQL file (apply manually with sqlite3)
+# Generate SQL file (apply only after verifying target schema/version)
 node scripts/migrate-cli.js -s /opt/9router/data/db/data.sqlite -m sql
-sqlite3 ~/.omniroute/db/data.sqlite < omniroute_inject.sql
 
-# Direct inject (requires OmniRoute to have run at least once)
-node scripts/migrate-cli.js -s /opt/9router/data/db/data.sqlite -m inject
+# Direct inject into OmniRoute (requires OmniRoute to have run at least once)
+node scripts/migrate-cli.js \
+  -s /opt/9router/data/db/data.sqlite \
+  --target-db /path/to/omniroute/storage.sqlite \
+  -m inject
 
 # All three at once
 node scripts/migrate-cli.js -s /opt/9router/data/db/data.sqlite -m all

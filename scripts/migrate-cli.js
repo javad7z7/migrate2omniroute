@@ -28,6 +28,7 @@ function parseArgs(argv) {
     if (a === '--json' || a === '-j') args.json = argv[++i];
     else if (a === '--source' || a === '-s') args.source = argv[++i];
     else if (a === '--target' || a === '-t') args.target = argv[++i];
+    else if (a === '--target-db') args.targetDb = argv[++i];
     else if (a === '--mode' || a === '-m') args.mode = argv[++i];
     else if (a === '--include-usage') args.includeUsage = true;
     else if (a === '--help' || a === '-h') args.help = true;
@@ -49,6 +50,7 @@ Options:
   -s, --source <path>    9router data.sqlite (local/legacy mode)
   -t, --target <dir>     OmniRoute data dir or output folder
                          (default: ./omniroute-output)
+      --target-db <path> Explicit OmniRoute storage.sqlite for inject mode
   -m, --mode <mode>      json | sql | inject | all  (default: json)
       --include-usage    Also migrate usage history (~20k rows)
   -h, --help             Show this help
@@ -117,7 +119,7 @@ console.log(`  modes:   ${modes.join(', ')}`);
 console.log('');
 
 runMigration(
-  { sourceDb, sourceJson, targetDir, modes, includeUsage: args.includeUsage },
+  { sourceDb, sourceJson, targetDir, targetDb: args.targetDb ? path.resolve(args.targetDb.replace(/^~/, os.homedir())) : undefined, modes, includeUsage: args.includeUsage },
   (msg) => console.log(msg)
 )
   .then(() => {

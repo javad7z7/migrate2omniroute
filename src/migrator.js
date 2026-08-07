@@ -14,6 +14,7 @@ const Database = require('better-sqlite3');
  * @param {string} [opts.sourceDb]   - path to 9router data.sqlite (legacy/local mode)
  * @param {string} [opts.sourceJson] - path to 9router JSON backup (portable/remote mode)
  * @param {string} opts.targetDir     - OmniRoute data dir or output folder
+ * @param {string} [opts.targetDb]    - explicit OmniRoute SQLite database for inject mode
  * @param {string[]} opts.modes    - subset of ["json","sql","inject"]
  * @param {boolean} opts.includeUsage - include usage history (default false)
  * @param {function(string):void} log
@@ -62,7 +63,7 @@ async function runMigration(opts, log) {
   }
 
   if (modes.includes('inject')) {
-    const targetDb = path.join(targetDir, 'db', 'data.sqlite');
+    const targetDb = opts.targetDb || path.join(targetDir, 'db', 'data.sqlite');
     if (!fs.existsSync(targetDb)) {
       throw new Error(
         `Target OmniRoute DB not found: ${targetDb}\n` +

@@ -16,7 +16,8 @@
     "build:mac": "electron-builder --mac --x64 --arm64",
     "build:linux": "electron-builder --linux --x64",
     "build:all": "electron-builder -mwl",
-    "pack": "electron-builder --dir"
+    "pack": "electron-builder --dir",
+    "test": "node tests/migrator-target-db.test.js"
   },
   "build": {
     "appId": "com.omniroute.migrate",
