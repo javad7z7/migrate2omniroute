@@ -30,12 +30,24 @@ WORKDIR=""
 STARTED_NEW_OMNIROUTE=false
 TARGET_CONTAINER=""
 TARGET_CONTAINER_WAS_RUNNING=false
+SOURCE_CONTAINER_TO_RESTART=""
+SOURCE_CONTAINER_STOPPED=false
 
 info() { printf '\n==> %s\n' "$*"; }
 ok() { printf '✓ %s\n' "$*"; }
 warn() { printf 'Warning: %s\n' "$*" >&2; }
 die() { printf 'Error: %s\n' "$*" >&2; exit 1; }
-cleanup() { [[ -n "$WORKDIR" && -d "$WORKDIR" ]] && rm -rf "$WORKDIR" || true; }
+restore_source_container() {
+  if [[ "$SOURCE_CONTAINER_STOPPED" == true ]]; then
+    "$DOCKER_BIN" start "$SOURCE_CONTAINER_TO_RESTART" >/dev/null 2>&1 || warn "Could not restart container '$SOURCE_CONTAINER_TO_RESTART'; start it manually."
+    SOURCE_CONTAINER_STOPPED=false
+    SOURCE_CONTAINER_TO_RESTART=""
+  fi
+}
+cleanup() {
+  restore_source_container
+  [[ -n "$WORKDIR" && -d "$WORKDIR" ]] && rm -rf "$WORKDIR" || true
+}
 trap cleanup EXIT
 
 usage() {
@@ -183,7 +195,7 @@ backup_json() {
 
 backup_container_sqlite() {
   local container="$1" dbpath="$2" backup="$RUN_DIR/9router-backup.sqlite" was_running=false
-  local copy_dir="$RUN_DIR/.container-copy" copied_file stopped=false
+  local copy_dir="$RUN_DIR/.container-copy"
   ensure_docker; ensure_sqlite
   [[ "$dbpath" == /* ]] || die "Container database path must be absolute: $dbpath"
   was_running="$($DOCKER_BIN inspect -f '{{.State.Running}}' "$container")"
@@ -191,21 +203,11 @@ backup_container_sqlite() {
     die "Container path is not a regular SQLite file: $container:$dbpath. Enter the file path (for example /app/data/data.sqlite), not its parent directory."
   fi
 
-  # Always restore the original container state, including on SIGINT or any
-  # failure after stopping it. This prevents a failed backup from leaving
-  # 9router offline.
-  restore_container() {
-    if [[ "$stopped" == true ]]; then
-      "$DOCKER_BIN" start "$container" >/dev/null 2>&1 || warn "Could not restart container '$container'; start it manually."
-      stopped=false
-    fi
-  }
-  trap restore_container RETURN
-
   if [[ "$was_running" == true ]]; then
     confirm "To create a consistent SQLite backup, stop 9router container '$container' briefly?" || die "A consistent container database backup requires stopping the source briefly. Use --json with a dashboard backup instead."
     "$DOCKER_BIN" stop --time 40 "$container" >/dev/null
-    stopped=true
+    SOURCE_CONTAINER_TO_RESTART="$container"
+    SOURCE_CONTAINER_STOPPED=true
   fi
 
   # Stream Docker's tar archive to a host-created file. Extracting directly
@@ -224,8 +226,7 @@ backup_container_sqlite() {
   log "Created verified backup from container $container:$dbpath"
   BACKUP_SOURCE="$backup"
   BACKUP_KIND="sqlite"
-  stopped=false
-  restore_container
+  restore_source_container
 }
 
 choose_source() {

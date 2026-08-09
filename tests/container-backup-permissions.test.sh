@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Regression test: docker cp can preserve restrictive ownership/mode from a
-# container. The migration staging step must create a host-owned SQLite backup
-# rather than extracting the archive into a host directory with those modes.
+# Regression tests for container SQLite migration safety: Docker output must be
+# streamed to a host-owned backup, and container restoration must not depend on
+# function-local trap state under `set -u`.
 set -Eeuo pipefail
 
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -21,7 +21,13 @@ require_pattern 'Container database copy is empty' \
   'empty Docker copies must fail explicitly'
 require_pattern 'Could not stream \$dbpath from container' \
   'copy failures must not be misreported as an invalid container path'
-require_pattern 'chmod 600 "\$backup"' \
-  'staged backup must be private'
+require_pattern 'SOURCE_CONTAINER_STOPPED=false' \
+  'source container restoration state must be globally initialized'
+require_pattern 'restore_source_container' \
+  'cleanup must restore a stopped source container'
+if grep -q 'trap restore_container RETURN' "$SCRIPT"; then
+  printf 'FAIL: RETURN trap must not access a function-local stopped variable\n' >&2
+  exit 1
+fi
 
-printf 'PASS: container SQLite permissions regression checks passed\n'
+printf 'PASS: container SQLite permissions and cleanup regression checks passed\n'
