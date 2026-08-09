@@ -254,9 +254,12 @@ choose_source() {
 }
 
 write_compose() {
-  local port="$1"
+  local port="$1" compose_tmp
   mkdir -p "$OMNIROUTE_DIR" "$OMNIROUTE_DATA_DIR"
-  cat > "$OMNIROUTE_DIR/compose.yml" <<EOF
+  [[ -d "$OMNIROUTE_DIR" && -w "$OMNIROUTE_DIR" ]] || die "OmniRoute install directory is not writable: $OMNIROUTE_DIR. Choose another location with OMNIROUTE_INSTALL_DIR."
+  [[ -d "$OMNIROUTE_DATA_DIR" && -w "$OMNIROUTE_DATA_DIR" ]] || die "OmniRoute data directory is not writable: $OMNIROUTE_DATA_DIR. Choose another location with OMNIROUTE_DATA_DIR."
+  compose_tmp="$(mktemp "$OMNIROUTE_DIR/.compose.yml.XXXXXX")" || die "Could not create a compose file in: $OMNIROUTE_DIR"
+  cat > "$compose_tmp" <<EOF
 services:
   omniroute:
     image: ${OMNIROUTE_IMAGE}
@@ -277,7 +280,8 @@ services:
     volumes:
       - ${OMNIROUTE_DATA_DIR}:/app/data
 EOF
-  chmod 600 "$OMNIROUTE_DIR/compose.yml"
+  chmod 600 "$compose_tmp"
+  mv -f "$compose_tmp" "$OMNIROUTE_DIR/compose.yml" || die "Could not write compose file: $OMNIROUTE_DIR/compose.yml. It may be owned by another user or immutable."
 }
 
 wait_for_omniroute() {
