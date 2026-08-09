@@ -218,9 +218,15 @@ backup_container_sqlite() {
   fi
   copied_file="$copy_dir/$(basename -- "$dbpath")"
   [[ -f "$copied_file" ]] || die "Container path is not a regular SQLite file: $container:$dbpath. Enter the file path (for example /app/data/data.sqlite), not its parent directory."
-  mv -- "$copied_file" "$backup"
-  [[ "$($SQLITE3_BIN "$backup" 'PRAGMA integrity_check;' | tail -n1)" == "ok" ]] || die "Container backup integrity check failed."
+
+  # docker cp preserves modes and can preserve an unmapped container owner.
+  # Stage through cp so the host-created backup is readable before sqlite3
+  # validates it; mv would retain an unreadable mode/owner.
+  if ! cp -- "$copied_file" "$backup"; then
+    die "Could not stage copied SQLite file from container $container. Check that $RUN_DIR is writable."
+  fi
   chmod 600 "$backup"
+  [[ "$($SQLITE3_BIN "$backup" 'PRAGMA integrity_check;' | tail -n1)" == "ok" ]] || die "Container backup integrity check failed."
   log "Created verified backup from container $container:$dbpath"
   BACKUP_SOURCE="$backup"
   BACKUP_KIND="sqlite"
