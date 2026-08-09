@@ -182,19 +182,50 @@ backup_json() {
 }
 
 backup_container_sqlite() {
-  local container="$1" dbpath="$2" backup="$RUN_DIR/9router-backup.sqlite" was_running
+  local container="$1" dbpath="$2" backup="$RUN_DIR/9router-backup.sqlite" was_running=false
+  local copy_dir="$RUN_DIR/.container-copy" copied_file stopped=false
   ensure_docker; ensure_sqlite
+  [[ "$dbpath" == /* ]] || die "Container database path must be absolute: $dbpath"
   was_running="$($DOCKER_BIN inspect -f '{{.State.Running}}' "$container")"
+  if [[ "$was_running" == true ]] && ! "$DOCKER_BIN" exec "$container" test -f "$dbpath" >/dev/null 2>&1; then
+    die "Container path is not a regular SQLite file: $container:$dbpath. Enter the file path (for example /app/data/data.sqlite), not its parent directory."
+  fi
+
+  # Always restore the original container state, including on SIGINT or any
+  # failure after stopping it. This prevents a failed backup from leaving
+  # 9router offline.
+  restore_container() {
+    if [[ "$stopped" == true ]]; then
+      "$DOCKER_BIN" start "$container" >/dev/null 2>&1 || warn "Could not restart container '$container'; start it manually."
+      stopped=false
+    fi
+  }
+  trap restore_container RETURN
+
   if [[ "$was_running" == true ]]; then
     confirm "To create a consistent SQLite backup, stop 9router container '$container' briefly?" || die "A consistent container database backup requires stopping the source briefly. Use --json with a dashboard backup instead."
     "$DOCKER_BIN" stop --time 40 "$container" >/dev/null
+    stopped=true
   fi
-  "$DOCKER_BIN" cp "$container:$dbpath" "$backup" || { [[ "$was_running" == true ]] && "$DOCKER_BIN" start "$container" >/dev/null; die "Could not copy $dbpath from container $container."; }
-  [[ "$was_running" == true ]] && "$DOCKER_BIN" start "$container" >/dev/null
+
+  # docker cp treats a non-existent destination ending in .sqlite ambiguously
+  # when dbpath is a directory. Copy to an existing directory first, then
+  # require the selected container path to resolve to a regular file.
+  rm -rf -- "$copy_dir"
+  mkdir -p -- "$copy_dir"
+  if ! "$DOCKER_BIN" cp "$container:$dbpath" "$copy_dir/"; then
+    die "Could not copy $dbpath from container $container. Enter the SQLite file path (for example /app/data/data.sqlite), not its parent directory."
+  fi
+  copied_file="$copy_dir/$(basename -- "$dbpath")"
+  [[ -f "$copied_file" ]] || die "Container path is not a regular SQLite file: $container:$dbpath. Enter the file path (for example /app/data/data.sqlite), not its parent directory."
+  mv -- "$copied_file" "$backup"
   [[ "$($SQLITE3_BIN "$backup" 'PRAGMA integrity_check;' | tail -n1)" == "ok" ]] || die "Container backup integrity check failed."
-  chmod 600 "$backup"; log "Created verified backup from container $container:$dbpath"
+  chmod 600 "$backup"
+  log "Created verified backup from container $container:$dbpath"
   BACKUP_SOURCE="$backup"
   BACKUP_KIND="sqlite"
+  stopped=false
+  restore_container
 }
 
 choose_source() {
