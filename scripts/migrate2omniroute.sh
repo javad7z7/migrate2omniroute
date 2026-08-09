@@ -155,7 +155,7 @@ choose_port() {
   fi
   port_is_free "$port" || die "Could not find a free port in 20128–20150. Use --port PORT."
   if ! "$NON_INTERACTIVE"; then
-    printf 'Proposed OmniRoute dashboard port: %s\n' "$port"
+    printf 'Proposed OmniRoute dashboard port: %s\n' "$port" >&2
     read -r -p 'Press Enter to accept, or type another port: ' answer
     [[ -n "${answer:-}" ]] && port="$answer"
     [[ "$port" =~ ^[0-9]{2,5}$ ]] || die "Invalid port."
@@ -256,6 +256,7 @@ choose_source() {
 write_compose() {
   local port="$1" compose_tmp
   mkdir -p "$OMNIROUTE_DIR" "$OMNIROUTE_DATA_DIR"
+  chmod 755 "$OMNIROUTE_DIR" "$OMNIROUTE_DATA_DIR"
   [[ -d "$OMNIROUTE_DIR" && -w "$OMNIROUTE_DIR" ]] || die "OmniRoute install directory is not writable: $OMNIROUTE_DIR. Choose another location with OMNIROUTE_INSTALL_DIR."
   [[ -d "$OMNIROUTE_DATA_DIR" && -w "$OMNIROUTE_DATA_DIR" ]] || die "OmniRoute data directory is not writable: $OMNIROUTE_DATA_DIR. Choose another location with OMNIROUTE_DATA_DIR."
   compose_tmp="$(mktemp "$OMNIROUTE_DIR/.compose.yml.XXXXXX")" || die "Could not create a compose file in: $OMNIROUTE_DIR"
@@ -280,7 +281,7 @@ services:
     volumes:
       - ${OMNIROUTE_DATA_DIR}:/app/data
 EOF
-  chmod 600 "$compose_tmp"
+  chmod 644 "$compose_tmp"
   mv -f "$compose_tmp" "$OMNIROUTE_DIR/compose.yml" || die "Could not write compose file: $OMNIROUTE_DIR/compose.yml. It may be owned by another user or immutable."
 }
 

@@ -25,6 +25,10 @@ require_pattern 'SOURCE_CONTAINER_STOPPED=false' \
   'source container restoration state must be globally initialized'
 require_pattern 'restore_source_container' \
   'cleanup must restore a stopped source container'
+require_pattern 'Proposed OmniRoute dashboard port:.*>&2' \
+  'choose_port interactive display must be redirected to stderr'
+require_pattern 'chmod 644 "\$compose_tmp"' \
+  'write_compose must set 0644 permissions on compose file'
 if grep -q 'trap restore_container RETURN' "$SCRIPT"; then
   printf 'FAIL: RETURN trap must not access a function-local stopped variable\n' >&2
   exit 1
