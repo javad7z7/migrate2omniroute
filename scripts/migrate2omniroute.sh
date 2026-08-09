@@ -208,23 +208,17 @@ backup_container_sqlite() {
     stopped=true
   fi
 
-  # docker cp treats a non-existent destination ending in .sqlite ambiguously
-  # when dbpath is a directory. Copy to an existing directory first, then
-  # require the selected container path to resolve to a regular file.
+  # Stream Docker's tar archive to a host-created file. Extracting directly
+  # into a directory can fail after a successful transfer when docker cp tries
+  # to preserve restrictive container ownership/modes (common on rootless
+  # Docker and UID-mapped containers).
   rm -rf -- "$copy_dir"
   mkdir -p -- "$copy_dir"
-  if ! "$DOCKER_BIN" cp "$container:$dbpath" "$copy_dir/"; then
-    die "Could not copy $dbpath from container $container. Enter the SQLite file path (for example /app/data/data.sqlite), not its parent directory."
+  if ! "$DOCKER_BIN" cp "$container:$dbpath" - | tar -xOf - > "$backup"; then
+    rm -f -- "$backup"
+    die "Could not stream $dbpath from container $container. Verify it is a regular SQLite file and that Docker can read it."
   fi
-  copied_file="$copy_dir/$(basename -- "$dbpath")"
-  [[ -f "$copied_file" ]] || die "Container path is not a regular SQLite file: $container:$dbpath. Enter the file path (for example /app/data/data.sqlite), not its parent directory."
-
-  # docker cp preserves modes and can preserve an unmapped container owner.
-  # Stage through cp so the host-created backup is readable before sqlite3
-  # validates it; mv would retain an unreadable mode/owner.
-  if ! cp -- "$copied_file" "$backup"; then
-    die "Could not stage copied SQLite file from container $container. Check that $RUN_DIR is writable."
-  fi
+  [[ -s "$backup" ]] || die "Container database copy is empty: $container:$dbpath"
   chmod 600 "$backup"
   [[ "$($SQLITE3_BIN "$backup" 'PRAGMA integrity_check;' | tail -n1)" == "ok" ]] || die "Container backup integrity check failed."
   log "Created verified backup from container $container:$dbpath"
