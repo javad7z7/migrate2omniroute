@@ -103,12 +103,12 @@ It never asks for or handles your sudo password. If the OS requires admin permis
 
 ### New isolated OmniRoute install
 
-For a new installation, the script uses the official `diegosouzapw/omniroute:latest` image and creates (by default `~/omniroute-m2o` for the compose file, and `/var/lib/omniroute/data` for root data storage or `~/omniroute-m2o/data` for non-root):
+For a new installation, the script uses the official `diegosouzapw/omniroute:latest` image and creates (by default `~/omniroute-m2o`):
 
 ```text
 ~/omniroute-m2o/
 ├── compose.yml
-└── data/                  # mounted at /app/data in the container (or /var/lib/omniroute/data when root)
+└── data/                  # mounted at /app/data in the container
 ```
 
 OmniRoute normally uses dashboard port `20128`. The script checks listening host and Docker ports, proposes `20128`, and picks the next available port (`20129`–`20150`) if needed. You can accept it or choose another port. It never intentionally reuses an occupied 9router port.

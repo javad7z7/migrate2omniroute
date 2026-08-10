@@ -10,11 +10,7 @@ RUNS_DIR="${M2O_RUNS_DIR:-$M2O_HOME/runs}"
 OMNIROUTE_DIR="${OMNIROUTE_INSTALL_DIR:-$HOME/omniroute-m2o}"
 OMNIROUTE_IMAGE="${OMNIROUTE_IMAGE:-diegosouzapw/omniroute:latest}"
 OMNIROUTE_CONTAINER="${OMNIROUTE_CONTAINER_NAME:-omniroute-m2o}"
-if [[ ${EUID:-$(id -u)} -eq 0 ]]; then
-  OMNIROUTE_DATA_DIR="${OMNIROUTE_DATA_DIR:-/var/lib/omniroute/data}"
-else
-  OMNIROUTE_DATA_DIR="${OMNIROUTE_DATA_DIR:-$OMNIROUTE_DIR/data}"
-fi
+OMNIROUTE_DATA_DIR="${OMNIROUTE_DATA_DIR:-$OMNIROUTE_DIR/data}"
 DEFAULT_OMNIROUTE_PORT="${OMNIROUTE_PORT:-20128}"
 OMNIROUTE_INTERNAL_PORT=20128
 NODE_BIN="${NODE_BIN:-node}"
@@ -266,6 +262,7 @@ services:
   omniroute:
     image: ${OMNIROUTE_IMAGE}
     container_name: ${OMNIROUTE_CONTAINER}
+    user: "0:0"
     restart: unless-stopped
     stop_grace_period: 40s
     environment:
