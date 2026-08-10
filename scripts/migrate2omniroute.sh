@@ -7,16 +7,14 @@ umask 077
 REPO_URL="${M2O_REPO_URL:-https://github.com/javad7z7/migrate2omniroute.git}"
 M2O_HOME="${M2O_HOME:-$HOME/.migrate2omniroute}"
 RUNS_DIR="${M2O_RUNS_DIR:-$M2O_HOME/runs}"
-if [[ -n "${OMNIROUTE_INSTALL_DIR:-}" ]]; then
-  OMNIROUTE_DIR="$OMNIROUTE_INSTALL_DIR"
-elif [[ ${EUID:-$(id -u)} -eq 0 ]]; then
-  OMNIROUTE_DIR="/var/lib/omniroute"
-else
-  OMNIROUTE_DIR="$HOME/omniroute-m2o"
-fi
+OMNIROUTE_DIR="${OMNIROUTE_INSTALL_DIR:-$HOME/omniroute-m2o}"
 OMNIROUTE_IMAGE="${OMNIROUTE_IMAGE:-diegosouzapw/omniroute:latest}"
 OMNIROUTE_CONTAINER="${OMNIROUTE_CONTAINER_NAME:-omniroute-m2o}"
-OMNIROUTE_DATA_DIR="${OMNIROUTE_DATA_DIR:-$OMNIROUTE_DIR/data}"
+if [[ ${EUID:-$(id -u)} -eq 0 ]]; then
+  OMNIROUTE_DATA_DIR="${OMNIROUTE_DATA_DIR:-/var/lib/omniroute/data}"
+else
+  OMNIROUTE_DATA_DIR="${OMNIROUTE_DATA_DIR:-$OMNIROUTE_DIR/data}"
+fi
 DEFAULT_OMNIROUTE_PORT="${OMNIROUTE_PORT:-20128}"
 OMNIROUTE_INTERNAL_PORT=20128
 NODE_BIN="${NODE_BIN:-node}"
@@ -319,7 +317,7 @@ install_omniroute() {
   local compose_content
   compose_content="$(get_compose_content "$port")"
   if ! printf '%s\n' "$compose_content" | $DOCKER_BIN compose -p "$OMNIROUTE_CONTAINER" -f - up -d >/dev/null 2>&1; then
-    if ! $DOCKER_BIN compose -f "$OMNIROUTE_DIR/compose.yml" up -d; then
+    if ! (cd "$OMNIROUTE_DIR" && $DOCKER_BIN compose up -d); then
       die "Failed to start OmniRoute container via Docker Compose."
     fi
   fi
