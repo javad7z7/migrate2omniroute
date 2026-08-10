@@ -14,29 +14,29 @@ The project normalizes the differences between 9router and OmniRoute schemas, in
 
 ## Choose your path
 
-| Situation | Use |
-|---|---|
-| 9router runs in Docker, VPS, NAS, or remote server | [Web Migrator](https://javad7z7.github.io/migrate2omniroute/migrate.html) with dashboard JSON backup |
-| You want a guided local app | Desktop release from [GitHub Releases](https://github.com/javad7z7/migrate2omniroute/releases/latest) |
-| Linux VPS / headless server | Interactive `scripts/migrate2omniroute.sh` |
-| CI or custom automation | `scripts/migrate-cli.js` |
-| Direct local database injection | Desktop/CLI `inject` mode with an explicit target database |
+| Situation                                          | Use                                                                                                   |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| 9router runs in Docker, VPS, NAS, or remote server | [Web Migrator](https://javad7z7.github.io/migrate2omniroute/migrate.html) with dashboard JSON backup  |
+| You want a guided local app                        | Desktop release from [GitHub Releases](https://github.com/javad7z7/migrate2omniroute/releases/latest) |
+| Linux VPS / headless server                        | Interactive `scripts/migrate2omniroute.sh`                                                            |
+| CI or custom automation                            | `scripts/migrate-cli.js`                                                                              |
+| Direct local database injection                    | Desktop/CLI `inject` mode with an explicit target database                                            |
 
 The web tool processes JSON in your browser. It cannot access server files or perform direct database injection; use Desktop or CLI for those modes.
 
 ## Outputs
 
-| File | Platform | Notes |
-|---|---|---|
-| `Migrate to OmniRoute-Setup-*.exe` | Windows x64 | **NSIS installer** — recommended |
-| `Migrate to OmniRoute *.exe` | Windows x64 | Portable, no install needed |
-| `Migrate to OmniRoute-*-win.zip` | Windows x64 | Zipped portable |
-| `Migrate to OmniRoute-*-mac.dmg` | macOS x64 (Intel) | Open DMG → drag app to **Applications**. Unsigned builds may need right-click → Open |
-| `Migrate to OmniRoute-*-arm64-mac.dmg` | macOS arm64 (M1/M2/M3) | Same drag-to-Applications flow |
-| `Migrate to OmniRoute-*-mac.zip` | macOS x64 (Intel) | Fallback archive. Unzip → `.app`; `xattr -cr "Migrate to OmniRoute.app"` if Gatekeeper blocks it |
-| `Migrate to OmniRoute-*-arm64-mac.zip` | macOS arm64 (M1/M2/M3) | Same fallback archive |
-| `Migrate to OmniRoute-*.AppImage` | Linux x64 | `chmod +x` then run |
-| `migrate-to-omniroute_*_amd64.deb` | Linux x64 | `sudo dpkg -i` |
+| File                                   | Platform               | Notes                                                                                            |
+| -------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------ |
+| `Migrate to OmniRoute-Setup-*.exe`     | Windows x64            | **NSIS installer** — recommended                                                                 |
+| `Migrate to OmniRoute *.exe`           | Windows x64            | Portable, no install needed                                                                      |
+| `Migrate to OmniRoute-*-win.zip`       | Windows x64            | Zipped portable                                                                                  |
+| `Migrate to OmniRoute-*-mac.dmg`       | macOS x64 (Intel)      | Open DMG → drag app to **Applications**. Unsigned builds may need right-click → Open             |
+| `Migrate to OmniRoute-*-arm64-mac.dmg` | macOS arm64 (M1/M2/M3) | Same drag-to-Applications flow                                                                   |
+| `Migrate to OmniRoute-*-mac.zip`       | macOS x64 (Intel)      | Fallback archive. Unzip → `.app`; `xattr -cr "Migrate to OmniRoute.app"` if Gatekeeper blocks it |
+| `Migrate to OmniRoute-*-arm64-mac.zip` | macOS arm64 (M1/M2/M3) | Same fallback archive                                                                            |
+| `Migrate to OmniRoute-*.AppImage`      | Linux x64              | `chmod +x` then run                                                                              |
+| `migrate-to-omniroute_*_amd64.deb`     | Linux x64              | `sudo dpkg -i`                                                                                   |
 
 > **Windows SmartScreen warning**: The app is not code-signed (certificates cost $200+/year), so Windows shows "Windows protected your PC". This is normal for open-source apps. Click **More info → Run anyway**. The source code is fully auditable in this repo.
 

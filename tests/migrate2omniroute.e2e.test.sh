@@ -25,11 +25,8 @@ case "${1:-}" in
   info) exit 0 ;;
   compose)
     if [[ "${2:-}" == version ]]; then exit 0; fi
-    # compose -f FILE up -d
-    if [[ "${4:-}" == up ]]; then
-      mkdir -p "$OMNIROUTE_DATA_DIR"
-      : > "$OMNIROUTE_DATA_DIR/storage.sqlite"
-    fi
+    mkdir -p "$OMNIROUTE_DATA_DIR"
+    : > "$OMNIROUTE_DATA_DIR/storage.sqlite"
     exit 0 ;;
   inspect)
     format="${3:-}"; container="${4:-}"
@@ -126,7 +123,7 @@ run_case() {
   grep -Fqx '    image: diegosouzapw/omniroute:latest' "$omni/compose.yml" || fail "$kind: compose image missing"
   grep -Fqx '      - "21999:20128"' "$omni/compose.yml" || fail "$kind: compose port missing"
   grep -Fqx "      - $omni/data:/app/data" "$omni/compose.yml" || fail "$kind: compose volume missing"
-  assert_log "compose -f $omni/compose.yml up -d" "$MOCK_LOG"
+  assert_log "compose -p omniroute-m2o -f - up -d" "$MOCK_LOG"
   assert_log 'stop --time 40 omniroute-m2o' "$MOCK_LOG"
   assert_log 'start omniroute-m2o' "$MOCK_LOG"
   assert_missing "$MOCK_WORKDIR"

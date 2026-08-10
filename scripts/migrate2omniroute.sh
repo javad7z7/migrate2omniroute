@@ -261,13 +261,9 @@ choose_source() {
   else die "Invalid selection."; fi
 }
 
-write_compose() {
-  local port="$1" target_file="$OMNIROUTE_DIR/compose.yml" tmp_file="$OMNIROUTE_DIR/compose.yml.tmp"
-  mkdir -p "$OMNIROUTE_DIR" "$OMNIROUTE_DATA_DIR"
-  chmod 755 "$OMNIROUTE_DIR" "$OMNIROUTE_DATA_DIR" 2>/dev/null || true
-  [[ -d "$OMNIROUTE_DIR" && -w "$OMNIROUTE_DIR" ]] || die "OmniRoute install directory is not writable: $OMNIROUTE_DIR. Choose another location with OMNIROUTE_INSTALL_DIR."
-  [[ -d "$OMNIROUTE_DATA_DIR" && -w "$OMNIROUTE_DATA_DIR" ]] || die "OmniRoute data directory is not writable: $OMNIROUTE_DATA_DIR. Choose another location with OMNIROUTE_DATA_DIR."
-  cat > "$tmp_file" <<EOF
+get_compose_content() {
+  local port="$1"
+  cat <<EOF
 services:
   omniroute:
     image: ${OMNIROUTE_IMAGE}
@@ -288,10 +284,16 @@ services:
     volumes:
       - ${OMNIROUTE_DATA_DIR}:/app/data
 EOF
-  chmod 644 "$tmp_file"
-  mv -f "$tmp_file" "$target_file" || die "Could not write compose file: $target_file."
-  chmod 644 "$target_file"
-  [[ -f "$target_file" ]] || die "Compose file missing after write: $target_file"
+}
+
+write_compose() {
+  local port="$1" target_file="$OMNIROUTE_DIR/compose.yml" tmp_file="$OMNIROUTE_DIR/compose.yml.tmp"
+  mkdir -p "$OMNIROUTE_DIR" "$OMNIROUTE_DATA_DIR" 2>/dev/null || true
+  chmod 755 "$OMNIROUTE_DIR" "$OMNIROUTE_DATA_DIR" 2>/dev/null || true
+  get_compose_content "$port" > "$tmp_file" 2>/dev/null || true
+  chmod 644 "$tmp_file" 2>/dev/null || true
+  mv -f "$tmp_file" "$target_file" 2>/dev/null || true
+  chmod 644 "$target_file" 2>/dev/null || true
 }
 
 wait_for_omniroute() {
@@ -313,7 +315,13 @@ install_omniroute() {
   printf '  Image: %s\n  Install directory: %s\n  Data directory: %s\n  Dashboard: http://SERVER_IP:%s\n' "$OMNIROUTE_IMAGE" "$OMNIROUTE_DIR" "$OMNIROUTE_DATA_DIR" "$port"
   confirm "Pull and start this separate OmniRoute container?" || die "Cancelled before OmniRoute installation."
   write_compose "$port"
-  (cd "$OMNIROUTE_DIR" && $DOCKER_BIN compose -f "$OMNIROUTE_DIR/compose.yml" up -d) || die "Failed to start OmniRoute container via Docker Compose in $OMNIROUTE_DIR."
+  local compose_content
+  compose_content="$(get_compose_content "$port")"
+  if ! printf '%s\n' "$compose_content" | $DOCKER_BIN compose -p "$OMNIROUTE_CONTAINER" -f - up -d >/dev/null 2>&1; then
+    if ! $DOCKER_BIN compose -f "$OMNIROUTE_DIR/compose.yml" up -d; then
+      die "Failed to start OmniRoute container via Docker Compose."
+    fi
+  fi
   STARTED_NEW_OMNIROUTE=true
   wait_for_omniroute
   TARGET_DB="$OMNIROUTE_DATA_DIR/storage.sqlite"
