@@ -7,13 +7,7 @@ umask 077
 REPO_URL="${M2O_REPO_URL:-https://github.com/javad7z7/migrate2omniroute.git}"
 M2O_HOME="${M2O_HOME:-$HOME/.migrate2omniroute}"
 RUNS_DIR="${M2O_RUNS_DIR:-$M2O_HOME/runs}"
-if [[ -n "${OMNIROUTE_INSTALL_DIR:-}" ]]; then
-  OMNIROUTE_DIR="$OMNIROUTE_INSTALL_DIR"
-elif [[ ${EUID:-$(id -u)} -eq 0 ]]; then
-  OMNIROUTE_DIR="/var/lib/omniroute"
-else
-  OMNIROUTE_DIR="$HOME/omniroute"
-fi
+OMNIROUTE_DIR="${OMNIROUTE_INSTALL_DIR:-$HOME/omniroute-m2o}"
 OMNIROUTE_IMAGE="${OMNIROUTE_IMAGE:-diegosouzapw/omniroute:latest}"
 OMNIROUTE_CONTAINER="${OMNIROUTE_CONTAINER_NAME:-omniroute-m2o}"
 OMNIROUTE_DATA_DIR="${OMNIROUTE_DATA_DIR:-$OMNIROUTE_DIR/data}"
@@ -288,12 +282,12 @@ EOF
 
 write_compose() {
   local port="$1" target_file="$OMNIROUTE_DIR/compose.yml" tmp_file="$OMNIROUTE_DIR/compose.yml.tmp"
-  mkdir -p "$OMNIROUTE_DIR" "$OMNIROUTE_DATA_DIR" 2>/dev/null || true
-  chmod 755 "$OMNIROUTE_DIR" "$OMNIROUTE_DATA_DIR" 2>/dev/null || true
-  get_compose_content "$port" > "$tmp_file" 2>/dev/null || true
-  chmod 644 "$tmp_file" 2>/dev/null || true
-  mv -f "$tmp_file" "$target_file" 2>/dev/null || true
-  chmod 644 "$target_file" 2>/dev/null || true
+  mkdir -p "$OMNIROUTE_DIR" "$OMNIROUTE_DATA_DIR"
+  chmod 755 "$OMNIROUTE_DIR" "$OMNIROUTE_DATA_DIR" || true
+  get_compose_content "$port" > "$tmp_file"
+  chmod 644 "$tmp_file"
+  mv -f "$tmp_file" "$target_file"
+  chmod 644 "$target_file"
 }
 
 wait_for_omniroute() {

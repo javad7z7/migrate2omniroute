@@ -103,10 +103,10 @@ It never asks for or handles your sudo password. If the OS requires admin permis
 
 ### New isolated OmniRoute install
 
-For a new installation, the script uses the official `diegosouzapw/omniroute:latest` image and creates (by default `/var/lib/omniroute` when root, or `~/omniroute` when non-root):
+For a new installation, the script uses the official `diegosouzapw/omniroute:latest` image and creates (by default `~/omniroute-m2o`):
 
 ```text
-/var/lib/omniroute/
+~/omniroute-m2o/
 ├── compose.yml
 └── data/                  # mounted at /app/data in the container
 ```
