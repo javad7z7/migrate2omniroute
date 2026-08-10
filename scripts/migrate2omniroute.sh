@@ -7,7 +7,13 @@ umask 077
 REPO_URL="${M2O_REPO_URL:-https://github.com/javad7z7/migrate2omniroute.git}"
 M2O_HOME="${M2O_HOME:-$HOME/.migrate2omniroute}"
 RUNS_DIR="${M2O_RUNS_DIR:-$M2O_HOME/runs}"
-OMNIROUTE_DIR="${OMNIROUTE_INSTALL_DIR:-$HOME/.omniroute-m2o}"
+if [[ -n "${OMNIROUTE_INSTALL_DIR:-}" ]]; then
+  OMNIROUTE_DIR="$OMNIROUTE_INSTALL_DIR"
+elif [[ ${EUID:-$(id -u)} -eq 0 ]]; then
+  OMNIROUTE_DIR="/var/lib/omniroute"
+else
+  OMNIROUTE_DIR="$HOME/omniroute"
+fi
 OMNIROUTE_IMAGE="${OMNIROUTE_IMAGE:-diegosouzapw/omniroute:latest}"
 OMNIROUTE_CONTAINER="${OMNIROUTE_CONTAINER_NAME:-omniroute-m2o}"
 OMNIROUTE_DATA_DIR="${OMNIROUTE_DATA_DIR:-$OMNIROUTE_DIR/data}"
@@ -167,7 +173,9 @@ choose_port() {
 make_run_dir() {
   RUN_DIR="$RUNS_DIR/$(date -u +%Y%m%dT%H%M%SZ)"
   mkdir -p "$RUN_DIR/migration-output"
+  chmod 755 "$M2O_HOME" "$RUNS_DIR" "$RUN_DIR" "$RUN_DIR/migration-output" 2>/dev/null || true
   : > "$RUN_DIR/migration.log"
+  chmod 644 "$RUN_DIR/migration.log" 2>/dev/null || true
   ok "Run workspace: $RUN_DIR"
 }
 log() { printf '%s %s\n' "$(date -u +%FT%TZ)" "$*" | tee -a "$RUN_DIR/migration.log"; }
@@ -314,7 +322,15 @@ install_omniroute() {
 
 choose_existing_target() {
   if [[ -n "$TARGET_DB" ]]; then [[ -f "$TARGET_DB" ]] || die "Target DB not found: $TARGET_DB"; return; fi
-  local candidates=("$HOME/.omniroute/storage.sqlite" "$HOME/.omniroute/db/data.sqlite" "$OMNIROUTE_DATA_DIR/storage.sqlite")
+  local candidates=(
+    "$HOME/.omniroute/storage.sqlite"
+    "$HOME/.omniroute/db/data.sqlite"
+    "$HOME/.omniroute-m2o/data/storage.sqlite"
+    "$HOME/omniroute/data/storage.sqlite"
+    "/var/lib/omniroute/data/storage.sqlite"
+    "/opt/omniroute/data/storage.sqlite"
+    "$OMNIROUTE_DATA_DIR/storage.sqlite"
+  )
   local found=() p
   for p in "${candidates[@]}"; do [[ -f "$p" ]] && found+=("$p"); done
   "$NON_INTERACTIVE" && die "Specify --target-db for an existing OmniRoute installation."
