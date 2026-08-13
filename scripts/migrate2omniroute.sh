@@ -243,7 +243,9 @@ choose_source() {
   for p in "${candidates[@]}"; do [[ -f "$p" ]] && found+=("$p"); done
   printf '\nChoose 9router source:\n'
   local i=1
-  for p in "${found[@]}"; do printf '  %d) Local SQLite: %s\n' "$i" "$p"; ((i++)); done
+  if (( ${#found[@]} > 0 )); then
+    for p in "${found[@]}"; do printf '  %d) Local SQLite: %s\n' "$i" "$p"; ((i++)); done
+  fi
   printf '  %d) Enter a local SQLite path\n' "$i"; local manual_db="$i"; ((i++))
   printf '  %d) Enter a dashboard JSON backup path\n' "$i"; local manual_json="$i"; ((i++))
   printf '  %d) Enter Docker container and database path\n' "$i"; local docker_choice="$i"
